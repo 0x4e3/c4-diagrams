@@ -6,17 +6,34 @@
 [![Commit activity](https://img.shields.io/github/commit-activity/m/sidorov-as/c4-diagrams)](https://img.shields.io/github/commit-activity/m/sidorov-as/c4-diagrams)
 [![License](https://img.shields.io/github/license/sidorov-as/c4-diagrams)](https://img.shields.io/github/license/sidorov-as/c4-diagrams)
 
-**c4-diagrams** is a Python DSL for defining C4 architecture diagrams as code.
+**c4-diagrams** is a Python DSL for defining **[C4 model](https://c4model.com/) architecture diagrams as code**.
 
-It provides first-class abstractions for C4 entities—people, systems, containers, components, boundaries, and
-relationships — with rendering support for several backends:
+The library provides first-class abstractions for C4 entities — people, systems, containers, components, boundaries,
+and relationships — allowing you to describe software architecture in Python and render it into multiple diagram formats.
 
-- [PlantUML](https://github.com/plantuml-stdlib/C4-PlantUML)
-  - local rendering using plantuml or plantuml.jar
-  - remote rendering using PlantUML server
-- [Mermaid](https://mermaid.js.org/syntax/c4.html) (WIP)
-- [Structurizr](https://structurizr.com/) (WIP)
+---
 
+## Features
+
+- Declarative Python DSL for C4 modeling
+- First-class C4 entities and relationships
+- Multiple rendering backends
+- Suitable for documentation, ADRs, and architecture reviews
+- Renderer-agnostic DSL (same code → different outputs)
+
+---
+
+## Rendering backends
+
+Currently supported and planned backends:
+
+- [**PlantUML**](https://github.com/plantuml-stdlib/C4-PlantUML)
+  - local rendering via `plantuml` CLI or `plantuml.jar`
+  - remote rendering via PlantUML server
+- [**Mermaid**](https://mermaid.js.org/syntax/c4.html) — WIP
+- [**Structurizr**](https://structurizr.com/) — WIP
+
+---
 ## Getting started
 
 **c4-diagrams** requires **Python 3.10** or higher.
@@ -35,16 +52,53 @@ $ poetry add c4-diagrams
 $ uv add c4-diagrams
 ```
 
-You can start with [quick start](https://sidorov-as.github.io/c4-diagrams/getting-started/installation#quick-start).
-[Read the docs](https://sidorov-as.github.io/c4-diagrams/) for more details.
+## Minimal example
+
+A minimal system context diagram defined in Python:
+
+```python
+from c4 import Person, Rel, System, SystemContextDiagram
+
+with SystemContextDiagram("Example system context") as diagram:
+    user = Person(label="User", description="System user")
+    backend = System(label="Backend API", description="Main application backend")
+
+    user >> Rel("Uses HTTP API") >> backend
+
+print(diagram.as_plantuml())
+```
+
+<details>
+<summary>Generated PlantUML source</summary>
+
+```puml
+@startuml
+' convert it with additional command line argument -DRELATIVE_INCLUDE="relative/absolute" to use locally
+!if %variable_exists("RELATIVE_INCLUDE")
+    !include %get_variable_value("RELATIVE_INCLUDE")/C4_Context.puml
+!else
+    !include https://raw.githubusercontent.com/plantuml-stdlib/C4-PlantUML/master/C4_Context.puml
+!endif
+
+title Example system context
+
+Person(user_91e7, "User", "System user")
+
+System(backend_api_610a, "Backend API", "Main application backend")
+
+Rel(user_91e7, backend_api_610a, "Uses HTTP API")
+
+@enduml
+```
+
+</details>
 
 ## Examples
-
-
 
 | System context diagram                                    | Container Diagram                                       | Component Diagram                                       |
 |-----------------------------------------------------------|---------------------------------------------------------|---------------------------------------------------------|
 | ![system context](docs/assets/system-context-diagram.png) | ![container diagram](docs/assets/container-diagram.png) | ![component diagram](docs/assets/component-diagram.png) |
+
 
 ## Project Links
 
