@@ -10,8 +10,11 @@ copyright: Maintained by <a href="https://github.com/sidorov-as">sidorov-as</a>.
 nav:
   - Home: index.md
   - Modules: modules.md
+  - Contributing: contributing.md
+
 plugins:
   - search
+  - include-markdown
   - mkdocstrings:
       handlers:
         python:
@@ -21,22 +24,28 @@ theme:
   feature:
     tabs: true
   palette:
+    - media: "(prefers-color-scheme)"
+      toggle:
+        icon: material/lightbulb-auto
+        name: Switch to light mode
     - media: "(prefers-color-scheme: light)"
       scheme: default
-      primary: white
+      primary: blue
       accent: deep orange
       toggle:
-        icon: material/brightness-7
+        icon: material/lightbulb
         name: Switch to dark mode
     - media: "(prefers-color-scheme: dark)"
       scheme: slate
-      primary: black
+      primary: blue
       accent: deep orange
       toggle:
-        icon: material/brightness-4
+        icon: material/lightbulb-outline
         name: Switch to light mode
   icon:
     repo: fontawesome/brands/github
+  logo: assets/c4-diagrams.png
+  favicon: assets/favicon.ico
 
 extra:
   social:
@@ -46,6 +55,9 @@ extra:
       link: https://pypi.org/project/c4-diagrams
 
 markdown_extensions:
+  - admonition
+  - codehilite
+  - pymdownx.superfences
   - toc:
       permalink: true
   - pymdownx.arithmatex:

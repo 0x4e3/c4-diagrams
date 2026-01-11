@@ -1,3 +1,5 @@
+![c4-diagrams](docs/assets/c4-diagrams-logo.png)
+
 # c4-diagrams
 
 [![Release](https://img.shields.io/github/v/release/sidorov-as/c4-diagrams)](https://img.shields.io/github/v/release/sidorov-as/c4-diagrams)
@@ -103,11 +105,11 @@ Rel(user_91e7, backend_api_610a, "Uses HTTP API")
 
 ## License
 
-* [MIT LICENSE](LICENSE)
+* [MIT LICENSE](https://github.com/sidorov-as/c4-diagrams/blob/main/LICENSE)
 
 ## Contribution
 
-[Contribution guidelines for this project](CONTRIBUTING.md)
+[Contribution guidelines for this project](https://github.com/sidorov-as/c4-diagrams/blob/main/CONTRIBUTING.md)
 
 ---
 
