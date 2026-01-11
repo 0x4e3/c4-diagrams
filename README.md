@@ -8,10 +8,8 @@
 
 **c4-diagrams** is a Python DSL for defining **[C4 model](https://c4model.com/) architecture diagrams as code**.
 
-The library provides first-class abstractions for C4 entities — people, systems, containers, components, boundaries,
+The package provides first-class abstractions for C4 entities — people, systems, containers, components, boundaries,
 and relationships — allowing you to describe software architecture in Python and render it into multiple diagram formats.
-
----
 
 ## Features
 
@@ -20,8 +18,6 @@ and relationships — allowing you to describe software architecture in Python a
 - Multiple rendering backends
 - Suitable for documentation, ADRs, and architecture reviews
 - Renderer-agnostic DSL (same code → different outputs)
-
----
 
 ## Rendering backends
 
@@ -33,7 +29,6 @@ Currently supported and planned backends:
 - [**Mermaid**](https://mermaid.js.org/syntax/c4.html) — WIP
 - [**Structurizr**](https://structurizr.com/) — WIP
 
----
 ## Getting started
 
 **c4-diagrams** requires **Python 3.10** or higher.
@@ -98,7 +93,6 @@ Rel(user_91e7, backend_api_610a, "Uses HTTP API")
 | System context diagram                                    | Container Diagram                                       | Component Diagram                                       |
 |-----------------------------------------------------------|---------------------------------------------------------|---------------------------------------------------------|
 | ![system context](docs/assets/system-context-diagram.png) | ![container diagram](docs/assets/container-diagram.png) | ![component diagram](docs/assets/component-diagram.png) |
-
 
 ## Project Links
 
