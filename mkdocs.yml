@@ -1,0 +1,52 @@
+site_name: c4-diagrams
+repo_url: https://github.com/sidorov-as/c4-diagrams
+site_url: https://sidorov-as.github.io/c4-diagrams
+site_description: A Python DSL for generating C4 diagrams
+site_author: Alexey Sidorov
+edit_uri: edit/main/docs/
+repo_name: sidorov-as/c4-diagrams
+copyright: Maintained by <a href="https://github.com/sidorov-as">sidorov-as</a>.
+
+nav:
+  - Home: index.md
+  - Modules: modules.md
+plugins:
+  - search
+  - mkdocstrings:
+      handlers:
+        python:
+          paths: ["c4"]
+theme:
+  name: material
+  feature:
+    tabs: true
+  palette:
+    - media: "(prefers-color-scheme: light)"
+      scheme: default
+      primary: white
+      accent: deep orange
+      toggle:
+        icon: material/brightness-7
+        name: Switch to dark mode
+    - media: "(prefers-color-scheme: dark)"
+      scheme: slate
+      primary: black
+      accent: deep orange
+      toggle:
+        icon: material/brightness-4
+        name: Switch to light mode
+  icon:
+    repo: fontawesome/brands/github
+
+extra:
+  social:
+    - icon: fontawesome/brands/github
+      link: https://github.com/sidorov-as/c4-diagrams
+    - icon: fontawesome/brands/python
+      link: https://pypi.org/project/c4-diagrams
+
+markdown_extensions:
+  - toc:
+      permalink: true
+  - pymdownx.arithmatex:
+      generic: true
