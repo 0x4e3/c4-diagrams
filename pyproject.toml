@@ -17,6 +17,9 @@ classifiers = [
     "Programming Language :: Python :: 3.14",
     "Topic :: Software Development :: Libraries :: Python Modules",
 ]
+dependencies = [
+    "typing-extensions>=4.15.0",
+]
 
 [project.urls]
 Homepage = "https://sidorov-as.github.io/c4-diagrams/"
@@ -54,6 +57,10 @@ check_untyped_defs = true
 warn_return_any = true
 warn_unused_ignores = true
 show_error_codes = true
+
+[[tool.mypy.overrides]]
+module = "c4.compat.strenum"
+ignore_errors = true
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
@@ -97,21 +104,36 @@ select = [
     "TRY",
 ]
 ignore = [
-    # LineTooLong
-    "E501",
     # DoNotAssignLambda
     "E731",
+    # Use a single `with` statement with multiple contexts
+    "SIM117",
+    # Avoid specifying long messages outside the exception class
+    "TRY003",
 ]
 
 [tool.ruff.lint.per-file-ignores]
-"tests/*" = ["S101"]
+"tests/*" = ["S101", "E501"]
+"c4/renderers/plantuml/renderer.py" = ["A001", "A002"]
+"c4/renderers/plantuml/backends.py" = ["A001", "A002"]
+"c4/compat/strenum.py" = ["E501", "UP031", "SIM102",]
 
 [tool.ruff.format]
 preview = true
 
 [tool.coverage.report]
 skip_empty = true
+fail_under = 76
+exclude_also = [
+    "pragma: no cover",
+    "raise NotImplementedError",
+    "if typing.TYPE_CHECKING",
+    "if TYPE_CHECKING",
+]
 
 [tool.coverage.run]
 branch = true
 source = ["c4"]
+omit = [
+    "tests/*",
+]
