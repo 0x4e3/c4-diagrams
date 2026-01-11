@@ -26,7 +26,7 @@ jobs:
         uses: ./.github/actions/setup-python-env
 
       - name: Build
-        run: mkdocs build --strict --site-dir site
+        run: uv run mkdocs build --strict --site-dir site
 
       - uses: actions/upload-pages-artifact@v3
         with:
