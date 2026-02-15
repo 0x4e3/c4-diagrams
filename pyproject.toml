@@ -1,6 +1,6 @@
 [project]
 name = "c4-diagrams"
-version = "0.2.0"
+version = "0.3.0"
 description = "A Python DSL for generating C4 diagrams"
 authors = [{ name = "Alexey Sidorov", email = "ereon.dev@gmail.com" }]
 readme = "README.md"
@@ -146,7 +146,7 @@ preview = true
 
 [tool.coverage.report]
 skip_empty = true
-fail_under = 91
+fail_under = 93
 exclude_also = [
     "pragma: no cover",
     "raise NotImplementedError",
@@ -163,7 +163,7 @@ omit = [
 
 [tool.commitizen]
 name = "cz_conventional_commits"
-version = "0.2.0"
+version = "0.3.0"
 tag_format = "$version"
 version_scheme = "semver"
 version_files = [

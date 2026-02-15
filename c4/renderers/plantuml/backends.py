@@ -77,7 +77,7 @@ class BasePlantUMLBackend(ABC):
     def to_file(
         self,
         diagram: str,
-        output_path: Path,
+        output_path: str | Path,
         *,
         format: DiagramFormat | None = PNG,
         overwrite: bool = True,
@@ -105,12 +105,16 @@ class BasePlantUMLBackend(ABC):
             FileNotFoundError: If the required PlantUML backend is
                 not available.
         """
+        output_path = Path(output_path)
+
         if format is None:
             if not output_path.suffix:
                 raise ValueError(
                     "format is None and output_path has no suffix (e.g. .svg)."
                 )
             format = output_path.suffix.lstrip(".").lower()  # type: ignore[assignment]
+
+        output_path = Path(output_path)
 
         if output_path.exists() and not overwrite:
             raise FileExistsError(f"Output exists: {output_path}")
