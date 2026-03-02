@@ -48,7 +48,7 @@ Currently supported and planned backends:
 
 **c4-diagrams** requires **Python 3.10** or higher.
 
-```shell
+```console
 pip install c4-diagrams
 ```
 
@@ -56,7 +56,7 @@ pip install c4-diagrams
 
 Here’s an example of **System Context** diagram defined in Python:
 
-```python
+```python3
 # diagram.py
 from c4 import *
 
@@ -90,7 +90,7 @@ with SystemContextDiagram("Acme Shop Platform") as diagram:
 
 To export the diagram to a rendered artifact, run:
 
-```shell
+```console
 c4 export diagram.py > diagram.png
 ```
 
