@@ -28,6 +28,7 @@ class DiagramLayout(StrEnum):
 
 TagShape = Literal["EightSidedShape", "RoundedBoxShape", ""]
 LineStyle = Literal["DashedLine", "DottedLine", "BoldLine", "SolidLine", ""]
+Details = Literal["Small", "Normal", "None"]
 
 
 @dataclass
@@ -39,10 +40,11 @@ class BaseTag:
     relationships, including optional visual enhancements and legend metadata.
 
     Attributes:
-        tag_stereo: The stereotype name of the tag.
+        tag_stereo: Stereotype name of the tag. Must match one of the tags
+            declared in the `tags` field of a diagram component.
         legend_text: The text shown in the legend for this tag.
         legend_sprite: The sprite displayed in the legend.
-        sprite: The sprite icon associated with the element or relation.
+        sprite: The sprite icon associated with the element or relationship.
     """
 
     tag_stereo: str
@@ -62,7 +64,7 @@ class ElementTag(BaseTag):
     Attributes:
         bg_color: Background color of the element.
         font_color: Font color used for labels.
-        border_color: Color of the element's border.
+        border_color: Color of the element border.
         shadowing: Shadow style or toggle (e.g., "true", "false").
         shape: Optional shape used for rendering.
         technology: Technology label shown in the element.
@@ -73,7 +75,7 @@ class ElementTag(BaseTag):
     bg_color: str
     font_color: str
     border_color: str
-    shadowing: str
+    shadowing: bool | None
     shape: TagShape
     technology: str
     border_style: LineStyle
@@ -90,7 +92,7 @@ class RelTag(BaseTag):
 
     Attributes:
         text_color: Color of the relationship label.
-        line_color: Color of the line itself.
+        line_color: Color of the relationship line.
         line_style: Line style (e.g., solid, dashed).
         line_thickness: Thickness of the line.
         technology: Technology label associated with the relationship.
@@ -176,7 +178,7 @@ class PersonTag(BaseTag):
     bg_color: str
     font_color: str
     border_color: str
-    shadowing: str
+    shadowing: bool | None
     shape: TagShape
     type_: str
     border_style: LineStyle
@@ -211,7 +213,7 @@ class SystemTag(BaseTag):
     bg_color: str
     font_color: str
     border_color: str
-    shadowing: str
+    shadowing: bool | None
     shape: TagShape
     type_: str
     border_style: LineStyle
@@ -261,7 +263,7 @@ class ElementStyle(BaseStyle):
     bg_color: str
     font_color: str
     border_color: str
-    shadowing: str
+    shadowing: bool | None
     shape: TagShape
     sprite: str
     technology: str
@@ -338,7 +340,7 @@ class ShowLegend:
     """
 
     hide_stereotype: bool | None = None
-    details: str | None = None
+    details: Details | None = None
 
 
 @dataclass
@@ -415,10 +417,6 @@ class LayoutConfig:
         show_person_sprite: Configuration for SHOW_PERSON_SPRITE macro.
         show_person_portrait: Whether to enable person portraits.
         show_person_outline: Whether to enable person outlines.
-        show_element_descriptions: Whether to display element descriptions
-                           in sequence diagrams.
-        show_foot_boxes: Whether to display foot boxes in sequence diagrams.
-        show_index: Whether to display index numbers in sequence diagrams.
         without_property_header: If no header is used, then the second column
             is bold.
         legend_title: Optional title for the diagram legend.
@@ -437,9 +435,6 @@ class LayoutConfig:
     show_person_sprite: ShowPersonSprite | None = None
     show_person_portrait: bool = False
     show_person_outline: bool = False
-    show_element_descriptions: bool = False
-    show_foot_boxes: bool = False
-    show_index: bool = False
     without_property_header: bool = False
     legend_title: str | None = None
     tags: list[BaseTag] = field(default_factory=list)
@@ -493,9 +488,6 @@ class LayoutOptions:
         self._hide_person_sprite = False
         self._show_person_portrait = False
         self._show_person_outline = False
-        self._show_element_descriptions = False
-        self._show_foot_boxes: bool = False
-        self._show_index: bool = False
         self._show_person_sprite = False
         self._show_person_sprite_defaults = {
             "alias": None,
@@ -505,13 +497,29 @@ class LayoutOptions:
         self._tags: list[BaseTag] = []
         self._styles: list[BaseStyle] = []
 
+    @property
+    def sketch_style_defaults(self) -> dict[str, Any]:
+        return self._set_sketch_style_defaults
+
+    @property
+    def legend_defaults(self) -> dict[str, Any]:
+        return self._show_legend_defaults
+
+    @property
+    def floating_legend_defaults(self) -> dict[str, Any]:
+        return self._show_floating_legend_defaults
+
+    @property
+    def person_sprite_defaults(self) -> dict[str, Any]:
+        return self._show_person_sprite_defaults
+
     def add_element_tag(
         self,
         tag_stereo: str,
         bg_color: str = "",
         font_color: str = "",
         border_color: str = "",
-        shadowing: str = "",
+        shadowing: bool | None = None,
         shape: TagShape = "",
         sprite: str = "",
         technology: str = "",
@@ -564,7 +572,7 @@ class LayoutOptions:
         bg_color: str = "",
         font_color: str = "",
         border_color: str = "",
-        shadowing: str = "",
+        shadowing: bool | None = None,
         shape: TagShape = "",
         sprite: str = "",
         technology: str = "",
@@ -661,7 +669,7 @@ class LayoutOptions:
         bg_color: str = "",
         font_color: str = "",
         border_color: str = "",
-        shadowing: str = "",
+        shadowing: bool | None = None,
         shape: TagShape = "",
         sprite: str = "",
         technology: str = "",
@@ -714,7 +722,7 @@ class LayoutOptions:
         bg_color: str = "",
         font_color: str = "",
         border_color: str = "",
-        shadowing: str = "",
+        shadowing: bool | None = None,
         shape: TagShape = "",
         sprite: str = "",
         technology: str = "",
@@ -767,7 +775,7 @@ class LayoutOptions:
         bg_color: str = "",
         font_color: str = "",
         border_color: str = "",
-        shadowing: str = "",
+        shadowing: bool | None = None,
         shape: TagShape = "",
         sprite: str = "",
         technology: str = "",
@@ -820,7 +828,7 @@ class LayoutOptions:
         bg_color: str = "",
         font_color: str = "",
         border_color: str = "",
-        shadowing: str = "",
+        shadowing: bool | None = None,
         shape: TagShape = "",
         sprite: str = "",
         technology: str = "",
@@ -873,7 +881,7 @@ class LayoutOptions:
         bg_color: str = "",
         font_color: str = "",
         border_color: str = "",
-        shadowing: str = "",
+        shadowing: bool | None = None,
         shape: TagShape = "",
         sprite: str = "",
         technology: str = "",
@@ -926,7 +934,7 @@ class LayoutOptions:
         bg_color: str = "",
         font_color: str = "",
         border_color: str = "",
-        shadowing: str = "",
+        shadowing: bool | None = None,
         shape: TagShape = "",
         sprite: str = "",
         type_: str = "",
@@ -979,7 +987,7 @@ class LayoutOptions:
         bg_color: str = "",
         font_color: str = "",
         border_color: str = "",
-        shadowing: str = "",
+        shadowing: bool | None = None,
         shape: TagShape = "",
         sprite: str = "",
         type_: str = "",
@@ -1032,7 +1040,7 @@ class LayoutOptions:
         bg_color: str = "",
         font_color: str = "",
         border_color: str = "",
-        shadowing: str = "",
+        shadowing: bool | None = None,
         shape: TagShape = "",
         sprite: str = "",
         type_: str = "",
@@ -1085,7 +1093,7 @@ class LayoutOptions:
         bg_color: str = "",
         font_color: str = "",
         border_color: str = "",
-        shadowing: str = "",
+        shadowing: bool | None = None,
         shape: TagShape = "",
         sprite: str = "",
         type_: str = "",
@@ -1138,7 +1146,7 @@ class LayoutOptions:
         bg_color: str = "",
         font_color: str = "",
         border_color: str = "",
-        shadowing: str = "",
+        shadowing: bool | None = None,
         shape: TagShape = "",
         sprite: str = "",
         technology: str = "",
@@ -1151,7 +1159,8 @@ class LayoutOptions:
         Adds an UpdateElementStyle() macro configuration.
 
         Args:
-            element_name: Element name.
+            element_name: C4 element type to style
+                (e.g. 'person', 'system', 'container').
             bg_color: Background color.
             font_color: Font color.
             border_color: Border color.
@@ -1191,7 +1200,7 @@ class LayoutOptions:
         bg_color: str = "",
         font_color: str = "",
         border_color: str = "",
-        shadowing: str = "",
+        shadowing: bool | None = None,
         shape: TagShape = "",
         type_: str = "",
         sprite: str = "",
@@ -1205,7 +1214,8 @@ class LayoutOptions:
         Adds an UpdateBoundaryStyle() macro configuration.
 
         Args:
-            element_name: Element name.
+            element_name: C4 element type to style
+                (e.g. 'person', 'system', 'container').
             bg_color: Background color.
             font_color: Font color.
             border_color: Border color.
@@ -1270,7 +1280,7 @@ class LayoutOptions:
         bg_color: str = "",
         font_color: str = "",
         border_color: str = "",
-        shadowing: str = "",
+        shadowing: bool | None = None,
         shape: TagShape = "",
         type_: str = "",
         sprite: str = "",
@@ -1284,7 +1294,8 @@ class LayoutOptions:
         Adds an UpdateContainerBoundaryStyle() macro configuration.
 
         Args:
-            element_name: Element name.
+            element_name: C4 element type to style
+                (e.g. 'person', 'system', 'container').
             bg_color: Background color.
             font_color: Font color.
             border_color: Border color.
@@ -1326,7 +1337,7 @@ class LayoutOptions:
         bg_color: str = "",
         font_color: str = "",
         border_color: str = "",
-        shadowing: str = "",
+        shadowing: bool | None = None,
         shape: TagShape = "",
         type_: str = "",
         sprite: str = "",
@@ -1340,7 +1351,8 @@ class LayoutOptions:
         Adds an UpdateSystemBoundaryStyle() macro configuration.
 
         Args:
-            element_name: Element name.
+            element_name: C4 element type to style
+                (e.g. 'person', 'system', 'container').
             bg_color: Background color.
             font_color: Font color.
             border_color: Border color.
@@ -1382,7 +1394,7 @@ class LayoutOptions:
         bg_color: str = "",
         font_color: str = "",
         border_color: str = "",
-        shadowing: str = "",
+        shadowing: bool | None = None,
         shape: TagShape = "",
         type_: str = "",
         sprite: str = "",
@@ -1396,7 +1408,8 @@ class LayoutOptions:
         Adds an UpdateEnterpriseBoundaryStyle() macro configuration.
 
         Args:
-            element_name: Element name.
+            element_name: C4 element type to style
+                (e.g. 'person', 'system', 'container').
             bg_color: Background color.
             font_color: Font color.
             border_color: Border color.
@@ -1432,7 +1445,7 @@ class LayoutOptions:
 
         return self
 
-    def layout_top_down(self, with_legend: bool = False) -> Self:
+    def layout_top_down(self, *, with_legend: bool = False) -> Self:
         """
         Sets the diagram layout to top-down orientation.
 
@@ -1444,7 +1457,7 @@ class LayoutOptions:
         """
         return self._set_layout(DiagramLayout.LAYOUT_TOP_DOWN, with_legend)
 
-    def layout_left_right(self, with_legend: bool = False) -> Self:
+    def layout_left_right(self, *, with_legend: bool = False) -> Self:
         """
         Sets the diagram layout to left-right orientation.
 
@@ -1456,7 +1469,7 @@ class LayoutOptions:
         """
         return self._set_layout(DiagramLayout.LAYOUT_LEFT_RIGHT, with_legend)
 
-    def layout_landscape(self, with_legend: bool = False) -> Self:
+    def layout_landscape(self, *, with_legend: bool = False) -> Self:
         """
         Sets the diagram layout to PlantUML landscape mode.
 
@@ -1546,7 +1559,7 @@ class LayoutOptions:
     def show_legend(
         self,
         hide_stereotype: bool = True,
-        details: Literal["Small", "Normal", "None"] = "Small",
+        details: Details = "Small",
     ) -> Self:
         """
         Enables SHOW_LEGEND macro with custom options.
@@ -1572,7 +1585,7 @@ class LayoutOptions:
         self,
         alias: str | None = None,
         hide_stereotype: bool = True,
-        details: Literal["Small", "Normal", "None"] = "Small",
+        details: Details = "Small",
     ) -> Self:
         """
         Enables SHOW_FLOATING_LEGEND macro with custom options.
@@ -1621,39 +1634,6 @@ class LayoutOptions:
             The updated layout configuration.
         """
         self._show_person_outline = True
-
-        return self
-
-    def show_element_descriptions(self) -> Self:
-        """
-        Enables SHOW_ELEMENT_DESCRIPTIONS macro.
-
-        Returns:
-            The updated layout configuration.
-        """
-        self._show_element_descriptions = True
-
-        return self
-
-    def show_foot_boxes(self) -> Self:
-        """
-        Enables SHOW_FOOT_BOXES macro.
-
-        Returns:
-            The updated layout configuration.
-        """
-        self._show_foot_boxes = True
-
-        return self
-
-    def show_index(self) -> Self:
-        """
-        Enables SHOW_INDEX macro.
-
-        Returns:
-            The updated layout configuration.
-        """
-        self._show_index = True
 
         return self
 
@@ -1771,9 +1751,6 @@ class LayoutOptions:
             show_person_sprite=show_person_sprite,
             show_person_portrait=self._show_person_portrait,
             show_person_outline=self._show_person_outline,
-            show_element_descriptions=self._show_element_descriptions,
-            show_foot_boxes=self._show_foot_boxes,
-            show_index=self._show_index,
             tags=self._tags,
             styles=self._styles,
             show_legend=show_legend,

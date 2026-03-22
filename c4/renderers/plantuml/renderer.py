@@ -2,7 +2,6 @@ from __future__ import annotations
 
 from pathlib import Path
 from typing import (
-    TYPE_CHECKING,
     Any,
     ClassVar,
     Generic,
@@ -55,10 +54,7 @@ from c4.renderers.plantuml.macros import (
     RelationshipPlantUMLMacro,
     SetIndexPlantUMLMacro,
     SetSketchStylePlantUMLMacro,
-    ShowElementDescriptionsPlantUMLMacro,
     ShowFloatingLegendPlantUMLMacro,
-    ShowFootBoxesPlantUMLMacro,
-    ShowIndexPlantUMLMacro,
     ShowLegendPlantUMLMacro,
     ShowPersonOutlinePlantUMLMacro,
     ShowPersonSpritePlantUMLMacro,
@@ -67,9 +63,6 @@ from c4.renderers.plantuml.macros import (
     UpdateLegendTitlePlantUMLMacro,
     WithoutPropertyHeaderPlantUMLMacro,
 )
-
-if TYPE_CHECKING:  # pragma: no cover
-    from c4.renderers.plantuml.layout_options import LayoutOptions
 
 
 class LayoutOptionsRenderer:
@@ -109,7 +102,7 @@ class LayoutOptionsRenderer:
 
         return builder.get_result()
 
-    def _render_layout(self) -> str:  # noqa: C901
+    def _render_layout(self) -> str:
         builder = IndentedStringBuilder()
         macro: PlantUMLMacro[Any]
 
@@ -137,18 +130,6 @@ class LayoutOptionsRenderer:
 
         if self._config.show_person_outline:
             macro = ShowPersonOutlinePlantUMLMacro()
-            builder.add(macro.render())
-
-        if self._config.show_element_descriptions:
-            macro = ShowElementDescriptionsPlantUMLMacro()
-            builder.add(macro.render())
-
-        if self._config.show_foot_boxes:
-            macro = ShowFootBoxesPlantUMLMacro()
-            builder.add(macro.render())
-
-        if self._config.show_index:
-            macro = ShowIndexPlantUMLMacro()
             builder.add(macro.render())
 
         if self._config.legend_title:
@@ -609,7 +590,7 @@ class PlantUMLRenderer(BaseRenderer[Diagram]):
     def __init__(
         self,
         includes: list[str] | None = None,
-        layout_options: LayoutOptions | None = None,
+        layout_config: LayoutConfig | None = None,
         backend: BasePlantUMLBackend | None = None,
         use_new_c4_style: bool = False,
         *args: Any,
@@ -621,7 +602,7 @@ class PlantUMLRenderer(BaseRenderer[Diagram]):
         Args:
             includes: A list of PlantUML `!include` directives
                 to be injected at the beginning of the diagram.
-            layout_options: Layout configuration that controls
+            layout_config: Layout configuration that controls
                 diagram rendering behavior, such as direction,
                 spacing, and group alignment.
             backend:
@@ -639,12 +620,9 @@ class PlantUMLRenderer(BaseRenderer[Diagram]):
         """
         super().__init__(*args, **kwargs)
         self._includes = includes or []
-        self._layout_config = None
+        self._layout_config = layout_config
         self._plantuml_backend = backend
         self._use_new_c4_style = use_new_c4_style
-
-        if layout_options:
-            self._layout_config = layout_options.build()
 
     def get_renderer(self, diagram: Diagram) -> BasePlantUMLRenderer[Diagram]:
         diagram_type = type(diagram)
@@ -655,9 +633,13 @@ class PlantUMLRenderer(BaseRenderer[Diagram]):
                 f"Unsupported PlantUML diagram type: {diagram_type}"
             )
 
+        layout_config = self._layout_config
+        if diagram.render_options and diagram.render_options.plantuml:
+            layout_config = diagram.render_options.plantuml
+
         return renderer_class(
             includes=self._includes,
-            layout_config=self._layout_config,
+            layout_config=layout_config,
             backend=self._plantuml_backend,
             use_new_c4_style=self._use_new_c4_style,
         )
@@ -750,7 +732,4 @@ class PlantUMLRenderer(BaseRenderer[Diagram]):
         )
 
 
-__all__ = (
-    "LayoutOptions",
-    "PlantUMLRenderer",
-)
+__all__ = ("PlantUMLRenderer",)

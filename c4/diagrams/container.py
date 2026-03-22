@@ -1,6 +1,9 @@
+from typing import ClassVar
+
 from c4.diagrams.core import (
     Boundary,
     Diagram,
+    DiagramType,
     Element,
     ElementWithTechnology,
     EmptyStr,
@@ -9,11 +12,23 @@ from c4.diagrams.core import (
     not_provided,
 )
 
+AllowedDiagramTypes = tuple[DiagramType, ...] | None
+
+
+ALLOWED_DIAGRAM_TYPES: tuple[DiagramType, ...] = (
+    DiagramType.CONTAINER_DIAGRAM,
+    DiagramType.COMPONENT_DIAGRAM,
+    DiagramType.DYNAMIC_DIAGRAM,
+    DiagramType.DEPLOYMENT_DIAGRAM,
+)
+
 
 class ContainerDiagram(Diagram):
     """
     Represents a [C4 Container diagram](https://c4model.com/diagrams/container).
     """
+
+    type: ClassVar[DiagramType] = DiagramType.CONTAINER_DIAGRAM
 
 
 class Container(Element):
@@ -24,13 +39,15 @@ class Container(Element):
     of deployment. It may optionally include technology and shape hints.
     """
 
+    allowed_diagram_types: AllowedDiagramTypes = ALLOWED_DIAGRAM_TYPES
+
     def __init__(
         self,
         label: str | Required = not_provided,
         description: str = "",
         technology: str = "",
         sprite: str = "",
-        tags: str = "",
+        tags: list[str] | None = None,
         link: str = "",
         base_shape: str = "",
         alias: str | EmptyStr = empty,
@@ -43,7 +60,7 @@ class Container(Element):
             description: Optional description of the container's purpose.
             technology: The technology stack used by the container.
             sprite: Optional sprite identifier for visual representation.
-            tags: Comma-separated tags for filtering or styling.
+            tags: Optional tags for styling or grouping.
             link: Optional URL for external documentation or navigation.
             base_shape: Optional base shape override for rendering.
             alias: Unique identifier for the container.
@@ -66,11 +83,15 @@ class ContainerDb(ElementWithTechnology):
     Represents a container specifically modeled as a database.
     """
 
+    allowed_diagram_types: AllowedDiagramTypes = ALLOWED_DIAGRAM_TYPES
+
 
 class ContainerQueue(ElementWithTechnology):
     """
     Represents a container modeled as a message queue or event broker.
     """
+
+    allowed_diagram_types: AllowedDiagramTypes = ALLOWED_DIAGRAM_TYPES
 
 
 class ContainerExt(Container):
@@ -78,11 +99,15 @@ class ContainerExt(Container):
     Represents an external container (outside the system boundary).
     """
 
+    allowed_diagram_types: AllowedDiagramTypes = ALLOWED_DIAGRAM_TYPES
+
 
 class ContainerDbExt(ContainerDb):
     """
     Represents an external database container.
     """
+
+    allowed_diagram_types: AllowedDiagramTypes = ALLOWED_DIAGRAM_TYPES
 
 
 class ContainerQueueExt(ContainerQueue):
@@ -90,17 +115,21 @@ class ContainerQueueExt(ContainerQueue):
     Represents an external message queue or broker.
     """
 
+    allowed_diagram_types: AllowedDiagramTypes = ALLOWED_DIAGRAM_TYPES
+
 
 class ContainerBoundary(Boundary):
     """
     Represents a boundary grouping containers within a system.
     """
 
+    allowed_diagram_types: AllowedDiagramTypes = ALLOWED_DIAGRAM_TYPES
+
     def __init__(
         self,
         label: str | Required = not_provided,
         description: str = "",
-        tags: str = "",
+        tags: list[str] | None = None,
         link: str = "",
         alias: str | EmptyStr = empty,
     ) -> None:
@@ -110,7 +139,7 @@ class ContainerBoundary(Boundary):
         Args:
             label: Displayed label of the boundary. Defaults to `empty`.
             description: Optional human-readable description of the boundary.
-            tags: Optional comma-separated tags for styling or filtering.
+            tags: Optional tags for styling or grouping.
             link: URL associated with the boundary for navigation or
                 documentation.
             alias: Unique identifier for the boundary.

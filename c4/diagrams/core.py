@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import abc
-from collections import UserString
+from collections import UserString, defaultdict
 from collections.abc import Iterable
 from contextvars import ContextVar
 from dataclasses import dataclass, field
@@ -16,21 +16,111 @@ from typing import (
     TypeVar,
     cast,
 )
-from uuid import uuid4
 
 from typing_extensions import Self, override
 
 from c4.compat import StrEnum
 
 if TYPE_CHECKING:  # pragma: no cover
-    from c4.renderers import BaseRenderer
+    from c4.renderers import BaseRenderer, PlantUMLRenderer, RenderOptions
 
 __diagram: ContextVar[Diagram | None] = ContextVar("diagram")
 __boundary: ContextVar[Boundary | None] = ContextVar("boundary")
 
 
+class AliasGenerator:
+    """
+    Generate unique, deterministic aliases based on a label.
+
+    Alias generation rules:
+
+    1. If an explicit `alias` is provided:
+       - It is returned as-is.
+       - A `ValueError` is raised if it has already been used.
+
+    2. If `alias` is not provided:
+       - The label is normalized:
+         * lowercased
+         * spaces replaced with "_"
+         * hyphens replaced with "_"
+       - If the normalized value has not been used yet, it is returned as-is.
+       - Otherwise, a numeric suffix is appended:
+           `<base>_<n>`
+         where numbering starts from 1 for the first collision.
+
+    Example:
+        >>> gen = AliasGenerator()
+        >>> gen.generate("My Service")
+        'my_service'
+        >>> gen.generate("My Service")
+        'my_service_1'
+        >>> gen.generate("My Service")
+        'my_service_2'
+
+    Notes:
+        - Uniqueness is enforced per generator instance.
+        - Explicit aliases participate in uniqueness checks.
+        - Counters are maintained per normalized base alias.
+    """
+
+    def __init__(self) -> None:
+        self._counters: dict[str, int] = defaultdict(int)
+        self._used: set[str] = set()
+
+    @staticmethod
+    def _normalize(label: str) -> str:
+        return label.lower().replace(" ", "_").replace("-", "_")
+
+    def generate(
+        self,
+        label: str,
+        alias: str | None = None,
+    ) -> str:
+        """
+        Generate a unique alias.
+
+        Args:
+            label: Source label used to derive the alias when `alias` is None.
+            alias: Optional explicit alias. If provided, it must be unique.
+
+        Returns:
+            A unique alias string.
+
+        Raises:
+            ValueError: If alias already exists.
+        """
+        if alias:
+            if alias in self._used:
+                raise ValueError(f"Alias {alias!r} already exists.")
+            self._used.add(alias)
+            return alias
+
+        base = self._normalize(label)
+
+        if base not in self._used:
+            self._used.add(base)
+            self._counters[base] = 1
+            return base
+
+        counter = self._counters[base]
+        while True:
+            candidate = f"{base}_{counter}"
+            counter += 1
+            if candidate not in self._used:
+                self._used.add(candidate)
+                self._counters[base] = counter
+                return candidate
+
+
+class EnumDescriptionsMixin:
+    @classmethod
+    def get_descriptions(cls) -> dict[Self, str]:
+        """Return the Enum items description used in documentation."""
+        raise NotImplementedError("Must be implemented by subclasses")
+
+
 @unique
-class RelationshipType(StrEnum):
+class RelationshipType(EnumDescriptionsMixin, StrEnum):
     """
     Enum representing different types of relationships between
     diagram elements.
@@ -58,11 +148,69 @@ class RelationshipType(StrEnum):
     REL_RIGHT = "REL_RIGHT"
     BI_REL_R = "BI_REL_R"
     BI_REL_RIGHT = "BI_REL_RIGHT"
-    SEQUENCE_DIAGRAM_MESSAGE = "SEQUENCE_DIAGRAM_MESSAGE"
+
+    @classmethod
+    def get_descriptions(cls) -> dict[RelationshipType, str]:
+        """Return the Enum items description used in documentation."""
+        return {
+            cls.BI_REL: "A bidirectional relationship between two elements.",
+            cls.BI_REL_DOWN: "A bidirectional downward relationship.",
+            cls.BI_REL_D: (
+                "A bidirectional downward relationship. "
+                "Shorthand for `BI_REL_DOWN`."
+            ),
+            cls.BI_REL_LEFT: "A bidirectional leftward relationship.",
+            cls.BI_REL_L: (
+                "A bidirectional leftward relationship. "
+                "Shorthand for `BI_REL_LEFT`."
+            ),
+            cls.BI_REL_NEIGHBOR: (
+                "A bidirectional neighboring relationship between two elements."
+            ),
+            cls.BI_REL_RIGHT: "A bidirectional rightward relationship.",
+            cls.BI_REL_R: (
+                "A bidirectional rightward relationship. "
+                "Shorthand for `BI_REL_RIGHT`."
+            ),
+            cls.BI_REL_UP: "A bidirectional upward relationship.",
+            cls.BI_REL_U: (
+                "A bidirectional upward relationship. "
+                "Shorthand for `BI_REL_UP`."
+            ),
+            cls.REL: "A unidirectional relationship between two elements.",
+            cls.REL_BACK: "A unidirectional relationship pointing backward.",
+            cls.REL_BACK_NEIGHBOR: (
+                "A unidirectional relationship combining backward "
+                "and neighboring semantics."
+            ),
+            cls.REL_DOWN: "A unidirectional downward relationship.",
+            cls.REL_D: (
+                "A unidirectional downward relationship. "
+                "Shorthand for `REL_DOWN`."
+            ),
+            cls.REL_LEFT: "A unidirectional leftward relationship.",
+            cls.REL_L: (
+                "A unidirectional leftward relationship. "
+                "Shorthand for `REL_LEFT`."
+            ),
+            cls.REL_NEIGHBOR: (
+                "A unidirectional relationship representing a lateral "
+                "or neighboring interaction."
+            ),
+            cls.REL_RIGHT: "A unidirectional rightward relationship.",
+            cls.REL_R: (
+                "A unidirectional rightward relationship. "
+                "Shorthand for `REL_RIGHT`."
+            ),
+            cls.REL_UP: "A unidirectional upward relationship.",
+            cls.REL_U: (
+                "A unidirectional upward relationship. Shorthand for `REL_UP`."
+            ),
+        }
 
 
 @unique
-class LayoutType(StrEnum):
+class LayoutType(EnumDescriptionsMixin, StrEnum):
     """
     Enum representing layout modifiers for diagram elements.
     """
@@ -76,6 +224,51 @@ class LayoutType(StrEnum):
     LAY_L = "LAY_L"
     LAY_LEFT = "LAY_LEFT"
 
+    @classmethod
+    def get_descriptions(cls) -> dict[LayoutType, str]:
+        """Return the Enum items description used in documentation."""
+        return {
+            cls.LAY_DOWN: "Positions `from` element below `to` element.",
+            cls.LAY_D: (
+                "Positions `from` element below `to` element. "
+                "Shorthand for `LAY_DOWN` layout."
+            ),
+            cls.LAY_UP: "Positions `from` element above `to` element.",
+            cls.LAY_U: (
+                "Positions `from` element above `to` element. "
+                "Shorthand for `LAY_UP` layout."
+            ),
+            cls.LAY_RIGHT: (
+                "Positions `from` element to the right of `to` element."
+            ),
+            cls.LAY_R: (
+                "Positions `from` element to the right of `to` element. "
+                "Shorthand for `LAY_RIGHT` layout."
+            ),
+            cls.LAY_LEFT: (
+                "Positions `from` element to the left of `to` element."
+            ),
+            cls.LAY_L: (
+                "Positions `from` element to the left of `to` element. "
+                "Shorthand for `LAY_LEFT` layout."
+            ),
+        }
+
+
+@unique
+class DiagramType(StrEnum):
+    """
+    Enum representing diagram types.
+    """
+
+    DIAGRAM = "Diagram"
+    SYSTEM_CONTEXT_DIAGRAM = "SystemContextDiagram"
+    SYSTEM_LANDSCAPE_DIAGRAM = "SystemLandscapeDiagram"
+    CONTAINER_DIAGRAM = "ContainerDiagram"
+    COMPONENT_DIAGRAM = "ComponentDiagram"
+    DYNAMIC_DIAGRAM = "DynamicDiagram"
+    DEPLOYMENT_DIAGRAM = "DeploymentDiagram"
+
 
 def get_diagram() -> Diagram | None:
     """
@@ -86,7 +279,7 @@ def get_diagram() -> Diagram | None:
     """
     try:
         return __diagram.get()
-    except LookupError:
+    except LookupError:  # pragma: no cover
         return None
 
 
@@ -174,6 +367,8 @@ class Required(UserString):
 
 not_provided = Required()
 
+DEFAULT_PROPERTIES_HEADER: tuple[str, str] = ("Property", "Value")
+
 
 @dataclass
 class DiagramElementProperties:
@@ -190,7 +385,9 @@ class DiagramElementProperties:
     """
 
     show_header: bool = True
-    header: list[str] = field(default_factory=lambda: ["Property", "Value"])
+    header: list[str] = field(
+        default_factory=lambda: list(DEFAULT_PROPERTIES_HEADER)
+    )
     properties: list[list[str]] = field(default_factory=list)
 
 
@@ -202,9 +399,11 @@ class BaseDiagramElement:
     attaching structured properties (e.g. key-value tables).
     """
 
+    allowed_diagram_types: tuple[DiagramType, ...] | None = None
+
     _diagram: Diagram
 
-    def __init__(self) -> None:
+    def __init__(self, **kwargs: Any) -> None:
         """
         Initializes the element and adds it to the current diagram context.
         """
@@ -212,7 +411,22 @@ class BaseDiagramElement:
         self._contribute_to_diagram()
         self.properties = DiagramElementProperties()
 
+    def _check_diagram_type(self) -> None:
+        if not self.allowed_diagram_types:
+            return None
+
+        if self._diagram.type not in self.allowed_diagram_types:
+            element_name = self.__class__.__name__
+            diagram_type = self._diagram.type.value
+            allowed = ", ".join([dt.value for dt in self.allowed_diagram_types])
+
+            raise ValueError(
+                f"{element_name} is not allowed in {diagram_type}. "
+                f"Allowed diagram types: {allowed}."
+            )
+
     def _contribute_to_diagram(self) -> None:
+        self._check_diagram_type()
         self._diagram.add_base_element(self)
 
     def set_property_header(self, *args: str) -> Self:
@@ -279,6 +493,11 @@ class BaseDiagramElement:
         self.properties.properties.append(list(args))
 
         return self
+
+    @property
+    def diagram(self) -> Diagram:
+        """Returns the current diagram context."""
+        return self._diagram
 
 
 class BaseIndex:
@@ -514,6 +733,10 @@ class increment(BaseDiagramElement):
     Used to increment the internal index counter by a specified offset.
     """
 
+    allowed_diagram_types: tuple[DiagramType, ...] | None = (
+        DiagramType.DYNAMIC_DIAGRAM,
+    )
+
     def __init__(self, offset: int = 1):
         """
         Initializes a macro call.
@@ -521,9 +744,16 @@ class increment(BaseDiagramElement):
         Args:
             offset: The amount to increment the index by. Defaults to 1.
         """
+        self.offset = offset
+
         super().__init__()
 
-        self.offset = offset
+    def __repr__(self) -> str:
+        cls_name = self.__class__.__name__
+
+        args = f"{self.offset}" if self.offset else ""
+
+        return f"{cls_name}({args})"
 
 
 class set_index(BaseDiagramElement):
@@ -533,6 +763,10 @@ class set_index(BaseDiagramElement):
     Used to explicitly set the internal index counter to a given value.
     """
 
+    allowed_diagram_types: tuple[DiagramType, ...] | None = (
+        DiagramType.DYNAMIC_DIAGRAM,
+    )
+
     def __init__(self, new_index: int) -> None:
         """
         Initializes a macro call.
@@ -540,9 +774,14 @@ class set_index(BaseDiagramElement):
         Args:
             new_index: The value to assign to the internal index.
         """
+        self.new_index = new_index
+
         super().__init__()
 
-        self.new_index = new_index
+    def __repr__(self) -> str:
+        cls_name = self.__class__.__name__
+
+        return f"{cls_name}({self.new_index})"
 
 
 @dataclass(frozen=True)
@@ -572,17 +811,20 @@ class Element(BaseDiagramElement, abc.ABC):
     Elements are automatically registered in the current diagram context.
     """
 
+    allowed_diagram_types: tuple[DiagramType, ...] | None = None
+
     _diagram: Diagram
 
     alias: str
     label: str
+    tags: list[str]
 
     def __init__(
         self,
         label: str | Required = not_provided,
         description: str = "",
         sprite: str = "",
-        tags: str = "",
+        tags: list[str] | None = None,
         link: str = "",
         type_: str = "",
         alias: str | EmptyStr = empty,
@@ -595,7 +837,7 @@ class Element(BaseDiagramElement, abc.ABC):
             label: Display name for the element. Required.
             description: Optional description text.
             sprite: Optional sprite/icon reference for rendering.
-            tags: Optional comma-separated tags for grouping/styling.
+            tags: Optional tags for styling or grouping.
             link: Optional URL associated with the element.
             type_: Optional custom type or stereotype label.
             alias: Unique identifier for the element. If not provided, it is
@@ -608,7 +850,7 @@ class Element(BaseDiagramElement, abc.ABC):
         self.alias = self._check_alias(alias, self.label)
         self.sprite = sprite
         self.type = type_
-        self.tags = tags
+        self.tags = tags or []
         self.link = link
 
         self.description = description
@@ -687,6 +929,7 @@ class Element(BaseDiagramElement, abc.ABC):
 
     @override
     def _contribute_to_diagram(self) -> None:
+        self._check_diagram_type()
         self._diagram.add(self)
 
     def uses(
@@ -748,14 +991,45 @@ class Element(BaseDiagramElement, abc.ABC):
         )
 
     def _generate_alias(self, label: str) -> str:
-        alias = label.lower().replace(" ", "_").replace("-", "_")
-        return alias + "_" + uuid4().hex[:4]
+        return current_diagram().generate_alias(label=label)
 
     @override
     def __str__(self) -> str:
         """Returns the string representation of the element."""
         cls_name = self.__class__.__name__
         return f"{cls_name}(alias={self.alias!r}, label={self.label!r})"
+
+    def __repr__(self) -> str:
+        cls_name = self.__class__.__name__
+        attrs = [
+            f"{self.label!r}",
+        ]
+
+        if self.description:
+            attrs.append(f"{self.description!r}")
+
+        if self.sprite:
+            attrs.append(f"sprite={self.sprite!r}")
+
+        if self.type:
+            attrs.append(f"type_={self.type!r}")
+
+        if self.tags:
+            attrs.append(f"tags={self.tags!r}")
+
+        if self.link:
+            attrs.append(f"link={self.link!r}")
+
+        if self.technology:
+            attrs.append(f"technology={self.technology!r}")
+
+        if self.base_shape:
+            attrs.append(f"base_shape={self.base_shape!r}")
+
+        attrs.append(f"alias={self.alias!r}")
+
+        args = ", ".join(attrs)
+        return f"{cls_name}({args})"
 
 
 class ElementWithTechnology(Element):
@@ -769,7 +1043,7 @@ class ElementWithTechnology(Element):
         description: str = "",
         technology: str = "",
         sprite: str = "",
-        tags: str = "",
+        tags: list[str] | None = None,
         link: str = "",
         alias: str | EmptyStr = empty,
     ) -> None:
@@ -781,7 +1055,7 @@ class ElementWithTechnology(Element):
             description: Optional description text.
             technology: Optional technology.
             sprite: Optional sprite/icon reference for rendering.
-            tags: Optional comma-separated tags for grouping/styling.
+            tags: Optional tags for styling or grouping.
             link: Optional URL associated with the element.
             alias: Unique identifier for the element. If not provided, it is
                 autogenerated from the label.
@@ -810,7 +1084,7 @@ class Boundary(Element):
         label: str | Required = not_provided,
         description: str = "",
         type_: str = "",
-        tags: str = "",
+        tags: list[str] | None = None,
         link: str = "",
         alias: str | EmptyStr = empty,
     ) -> None:
@@ -821,7 +1095,7 @@ class Boundary(Element):
             label: Human-readable name for the boundary. Required.
             description: Optional description.
             type_: Optional stereotype or visual marker.
-            tags: Optional comma-separated tags for styling or grouping.
+            tags: Optional tags for styling or grouping.
             link: Optional hyperlink associated with the boundary.
             alias: Unique identifier for the boundary.
                 If not provided, one is autogenerated.
@@ -848,10 +1122,8 @@ class Boundary(Element):
 
     @override
     def _contribute_to_diagram(self) -> None:
-        if self._parent:
-            self._parent.add_boundary(self)
-        else:
-            self._diagram.add_boundary(self)
+        self._check_diagram_type()
+        self._diagram.add_boundary(self)
 
     @property
     def elements(self) -> list[Element]:
@@ -955,10 +1227,13 @@ class Diagram:
     relationships, and renderers.
     """
 
+    type: ClassVar[DiagramType] = DiagramType.DIAGRAM
+
     def __init__(
         self,
         title: str | None = None,
         default_renderer: BaseRenderer[Diagram] | None = None,
+        render_options: RenderOptions | None = None,
     ) -> None:
         """
         Initialize a new diagram.
@@ -966,6 +1241,7 @@ class Diagram:
         Args:
             title: Optional title to label the diagram.
             default_renderer: Optional default renderer to use for rendering.
+            render_options: Optional renderer-specific options.
         """
         self._title = title
         self._default_renderer = default_renderer
@@ -974,8 +1250,12 @@ class Diagram:
         self._relationships: list[Relationship] = []
         self._layouts: list[Layout] = []
         self._base_elements: list[BaseDiagramElement] = []
+        self._render_options = render_options
 
-        self.__aliases: dict[str, Element] = {}
+        self.__elements_by_alias: dict[str, Element] = {}
+        self.__elements_by_label: dict[str, list[Element]] = {}
+        self.__alias_generator = AliasGenerator()
+        self.__referenced_elements: list[str] = []
 
     def __enter__(self) -> Self:
         """
@@ -991,7 +1271,7 @@ class Diagram:
 
     def __exit__(
         self,
-        exc_type: type[BaseException] | None,
+        exc_type: type[BaseException] | None,  # type: ignore[valid-type]
         exc_value: BaseException | None,
         traceback: TracebackType | None,
     ) -> None:
@@ -1000,18 +1280,34 @@ class Diagram:
         """
         set_diagram(None)
 
+    def __repr__(self) -> str:
+        cls_name = self.__class__.__name__
+        attrs = []
+
+        if self._title:
+            attrs.append(f"title={self._title!r}")
+
+        args = ", ".join(attrs)
+        return f"{cls_name}({args})"
+
     def _check_alias(self, element: Element) -> None:
         alias = element.alias
 
-        if existing_element := self.__aliases.get(alias):
-            raise ValueError(f"Duplicated alias {alias!r}: {existing_element}")
+        if existing_element := self.get_element_by_alias(alias):
+            raise ValueError(f"Duplicated alias {alias!r}: {existing_element}.")
 
         if not alias.isidentifier():
             raise ValueError(
-                f"Alias {alias!r} of {element} must be a valid identifier"
+                f"Alias {alias!r} of {element} must be a valid identifier."
             )
 
-        self.__aliases[alias] = element
+        self.__elements_by_alias[alias] = element
+
+    def _check_label(self, element: Element) -> None:
+        label = element.label
+
+        self.__elements_by_label.setdefault(label, [])
+        self.__elements_by_label[label].append(element)
 
     @property
     def title(self) -> str | None:
@@ -1056,6 +1352,34 @@ class Diagram:
         """
         return self._relationships
 
+    def get_element_by_alias(self, alias: str) -> Element | None:
+        """Return the element with the given alias."""
+        return self.__elements_by_alias.get(alias)
+
+    def get_elements_by_label(self, label: str) -> list[Element]:
+        """Return all elements that share the given label."""
+        return self.__elements_by_label.get(label, [])
+
+    def generate_alias(
+        self,
+        label: str,
+        alias: str | None = None,
+    ) -> str:
+        """
+        Generate a unique alias.
+
+        Args:
+            label: Source label used to derive the alias when `alias` is None.
+            alias: Optional explicit alias. If provided, it must be unique.
+
+        Returns:
+            A unique alias string.
+
+        Raises:
+            ValueError: If alias already exists.
+        """
+        return self.__alias_generator.generate(label, alias)
+
     def add_base_element(
         self, element: BaseDiagramElement
     ) -> BaseDiagramElement:
@@ -1083,6 +1407,7 @@ class Diagram:
             The added element.
         """
         self._check_alias(element)
+        self._check_label(element)
 
         if boundary := get_boundary():
             boundary.add(element)
@@ -1101,7 +1426,13 @@ class Diagram:
         Returns:
             The added boundary.
         """
-        self._boundaries.append(boundary)
+        self._check_alias(boundary)
+        self._check_label(boundary)
+
+        if parent := get_boundary():
+            parent.add_boundary(boundary)
+        else:
+            self._boundaries.append(boundary)
 
         return boundary
 
@@ -1115,6 +1446,9 @@ class Diagram:
         Returns:
             The added relationship.
         """
+        self.__referenced_elements.append(relationship.from_element.alias)  # type: ignore[union-attr]
+        self.__referenced_elements.append(relationship.to_element.alias)  # type: ignore[union-attr]
+
         if boundary := get_boundary():
             boundary.add_relationship(relationship)
         else:
@@ -1132,6 +1466,9 @@ class Diagram:
         Returns:
             The added layout.
         """
+        self.__referenced_elements.append(layout.from_element.alias)
+        self.__referenced_elements.append(layout.to_element.alias)
+
         self._layouts.append(layout)
 
         return layout
@@ -1141,15 +1478,25 @@ class Diagram:
         Render the diagram using the built-in PlantUML renderer.
 
         Args:
-            **kwargs: Optional keyword arguments passed to the renderer.
+            **kwargs: Optional keyword arguments passed to the
+                [PlantUML renderer][c4.renderers.PlantUMLRenderer].
 
         Returns:
             The rendered PlantUML code.
         """
-        from c4.renderers import PlantUMLRenderer
+        renderer = self._build_plantuml_renderer(**kwargs)
 
-        renderer = PlantUMLRenderer(**kwargs)
         return self.render(renderer)
+
+    def is_element_referenced_by_alias(self, alias: str) -> bool:
+        """
+        Check whether an element identified by the given alias is referenced.
+
+        An element is considered "referenced" if it participates
+        in relationships or layout definitions, and therefore must be
+        rendered using its alias.
+        """
+        return alias in self.__referenced_elements
 
     def render(self, renderer: BaseRenderer[Diagram] | None = None) -> str:
         """
@@ -1197,12 +1544,44 @@ class Diagram:
 
         Args:
             path: Target file path.
-            **kwargs: Optional kwargs passed to the PlantUML renderer.
+            **kwargs: Optional kwargs passed to the
+                [PlantUML renderer][c4.renderers.PlantUMLRenderer].
+        """
+        renderer = self._build_plantuml_renderer(**kwargs)
+
+        return self.save(path, renderer=renderer)
+
+    @property
+    def render_options(self) -> RenderOptions | None:
+        """Return rendering options for the diagram."""
+        return self._render_options
+
+    @render_options.setter
+    def render_options(self, render_options: RenderOptions) -> None:
+        """Set rendering options for the diagram."""
+        self._render_options = render_options
+
+    def _build_plantuml_renderer(self, **kwargs: Any) -> PlantUMLRenderer:
+        """
+        Create and configure a `PlantUMLRenderer` instance.
+
+        If diagram render options are set and include PlantUML-specific
+        settings, they are applied as default `layout_options` unless
+        explicitly provided in `kwargs`.
+
+        Args:
+            **kwargs: Additional keyword arguments passed directly to
+                ``PlantUMLRenderer``.
+
+        Returns:
+            A configured `PlantUMLRenderer` instance.
         """
         from c4.renderers import PlantUMLRenderer
 
-        renderer = PlantUMLRenderer(**kwargs)
-        return self.save(path, renderer=renderer)
+        if self._render_options and self._render_options.plantuml:
+            kwargs.setdefault("layout_config", self._render_options.plantuml)
+
+        return PlantUMLRenderer(**kwargs)
 
 
 class Relationship(BaseDiagramElement):
@@ -1225,7 +1604,7 @@ class Relationship(BaseDiagramElement):
         description: str = "",
         technology: str = "",
         sprite: str = "",
-        tags: str = "",
+        tags: list[str] | None = None,
         link: str = "",
         index: str | BaseIndex | None = None,
         from_element: Element | None = None,
@@ -1240,7 +1619,7 @@ class Relationship(BaseDiagramElement):
             description: Additional details about the relationship.
             technology: The technology used in the communication.
             sprite: Optional sprite to represent the relationship.
-            tags: Comma-separated tags for styling or grouping.
+            tags: Optional tags for styling or grouping.
             link: URL link associated with the relationship.
             index: Index associated with the relationship.
             from_element: The source element. Optional.
@@ -1259,7 +1638,7 @@ class Relationship(BaseDiagramElement):
         self.technology = technology
         self.description = description
         self.sprite = sprite
-        self.tags = tags
+        self.tags = tags or []
         self.link = link
         self.index = index
 
@@ -1286,6 +1665,15 @@ class Relationship(BaseDiagramElement):
             )
 
         cls.__relationship_by_type[relationship_type] = cls
+
+    def get_participants(self) -> tuple[Element, Element]:
+        if not self.from_element:
+            raise ValueError("from_element not provided")
+
+        if not self.to_element:
+            raise ValueError("to_element not provided")
+
+        return self.from_element, self.to_element
 
     def __rshift__(
         self, other: Element | list[Element]
@@ -1318,6 +1706,31 @@ class Relationship(BaseDiagramElement):
         self._ensure_not_completed()
 
         return self._connect(source=self.from_element, destination=other)
+
+    def __repr__(self) -> str:
+        cls_name = self.__class__.__name__
+        attrs = [
+            f"{self.label!r}",
+        ]
+
+        if self.description:
+            attrs.append(f"{self.description!r}")
+
+        repr_attrs = [
+            "technology",
+            "sprite",
+            "tags",
+            "link",
+            "index",
+        ]
+
+        for attr in repr_attrs:
+            value = getattr(self, attr)
+            if value:
+                attrs.append(f"{attr}={value!r}")
+
+        args = ", ".join(attrs)
+        return f"{cls_name}({args})"
 
     def _connect(
         self,
@@ -1383,7 +1796,9 @@ class Relationship(BaseDiagramElement):
         """
         attrs = {**self.get_attrs(), **overrides}
 
-        return Relationship(**attrs)
+        cls = self.get_relationship_by_type(self.relationship_type)
+
+        return cls(**attrs)
 
     @classmethod
     def get_relationship_by_type(
@@ -1551,6 +1966,8 @@ class Layout(BaseDiagramElement, abc.ABC):
 
     layout_type: LayoutType
 
+    __layout_by_type: ClassVar[dict[LayoutType, type[Layout]]] = {}
+
     def __init__(
         self,
         from_element: Element,
@@ -1579,8 +1996,51 @@ class Layout(BaseDiagramElement, abc.ABC):
         super().__init__()
 
     @override
+    def __init_subclass__(cls, *args: Any, **kwargs: Any) -> None:
+        """
+        Registers the layout subclass under its unique
+        `layout_type`.
+        """
+        super().__init_subclass__(*args, **kwargs)
+
+        layout_type = getattr(cls, "layout_type", None)
+        if layout_type is None or layout_type in cls.__layout_by_type:
+            raise TypeError(
+                f"Please provide an unique `layout_type` for this"
+                f" class {cls.__name__}"
+            )
+
+        cls.__layout_by_type[layout_type] = cls
+
+    @override
     def _contribute_to_diagram(self) -> None:
         self._diagram.add_layout(self)
+
+    def __repr__(self) -> str:
+        cls_name = self.__class__.__name__
+        from_ = self.from_element.alias
+        to_ = self.to_element.alias
+
+        return f"{cls_name}({from_}, {to_})"
+
+    @classmethod
+    def get_layout_by_type(cls, layout_type: LayoutType) -> type[Layout]:
+        """
+        Retrieve the layout class associated with the
+        given LayoutType.
+
+        Args:
+            layout_type: The enum value representing the
+                type of layout.
+
+        Returns:
+            The corresponding Layout subclass.
+
+        Raises:
+            KeyError: If no class is registered for the provided
+                layout type.
+        """
+        return cls.__layout_by_type[layout_type]
 
 
 class LayD(Layout):

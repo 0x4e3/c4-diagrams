@@ -42,6 +42,8 @@ def test_export__absolute_file_path__success(
         "txt",
         "-o",
         str(diagram_output),
+        "--timeout",
+        "60",
     ])
 
     assert result.exit_code == 0
@@ -76,7 +78,16 @@ def test_export__module__success(
         ),
     )
 
-    result = cli(["export", "module", "-f", "txt", "-o", str(diagram_output)])
+    result = cli([
+        "export",
+        "module",
+        "-f",
+        "txt",
+        "-o",
+        str(diagram_output),
+        "--timeout",
+        "60",
+    ])
 
     assert result.exit_code == 0
     assert not result.stdout
@@ -117,6 +128,8 @@ def test_export__absolute_file_path_with_ref__success(
         "txt",
         "-o",
         str(diagram_output),
+        "--timeout",
+        "60",
     ])
 
     assert result.exit_code == 0
@@ -158,6 +171,8 @@ def test_export__module_with_ref__success(
         "txt",
         "-o",
         str(diagram_output),
+        "--timeout",
+        "60",
     ])
 
     assert result.exit_code == 0
@@ -186,7 +201,7 @@ def test_export__absolute_file_path__diagram_not_found(
         ),
     )
     expected_error = (
-        "usage: c4 [-h] [-V] {render,export} ...\n"
+        "usage: c4 [-h] [-V] {render,export,convert} ...\n"
         f"c4: error: No Diagram instances found in '{module_path!s}'. "
         f"Define a Diagram at module level or specify one "
         f"explicitly as '<target>:<name>'.\n"
@@ -215,7 +230,7 @@ def test_export__module__diagram_not_found(
         ),
     )
     expected_error = (
-        "usage: c4 [-h] [-V] {render,export} ...\n"
+        "usage: c4 [-h] [-V] {render,export,convert} ...\n"
         "c4: error: No Diagram instances found in module 'module'. "
         "Define a Diagram at module level or specify one "
         "explicitly as '<target>:<name>'.\n"
@@ -246,7 +261,7 @@ def test_export__absolute_file_path_with_ref__diagram_not_found(
         ),
     )
     expected_error = (
-        "usage: c4 [-h] [-V] {render,export} ...\n"
+        "usage: c4 [-h] [-V] {render,export,convert} ...\n"
         f"c4: error: Diagram reference 'diagram' was not found "
         f"in {str(module_path)!r}.\n"
     )
@@ -281,7 +296,7 @@ def test_export__module_with_ref__diagram_not_found(
         ),
     )
     expected_error = (
-        "usage: c4 [-h] [-V] {render,export} ...\n"
+        "usage: c4 [-h] [-V] {render,export,convert} ...\n"
         "c4: error: Diagram reference 'diagram' was not found "
         "in module 'module'.\n"
     )
@@ -311,11 +326,11 @@ def test_export__absolute_file_path_with_ref__invalid_ref(
         ),
     )
     expected_error = (
-        "usage: c4 [-h] [-V] {render,export} ...\n"
+        "usage: c4 [-h] [-V] {render,export,convert} ...\n"
         f"c4: error: Invalid target "
         f"'{module_path!s}:'. "
         f"Expected 'module', 'module:diagram', 'file.py', "
-        f"or 'file.py:diagram'.\n"
+        f"'file.py:diagram' or 'file.json'.\n"
     )
 
     result = cli([
@@ -348,11 +363,11 @@ def test_export__module_with_ref__invalid_ref(
         ),
     )
     expected_error = (
-        "usage: c4 [-h] [-V] {render,export} ...\n"
+        "usage: c4 [-h] [-V] {render,export,convert} ...\n"
         "c4: error: Invalid target "
         "'module:'. "
         "Expected 'module', 'module:diagram', 'file.py', "
-        "or 'file.py:diagram'.\n"
+        "'file.py:diagram' or 'file.json'.\n"
     )
 
     result = cli(["export", "module:", "-o", str(diagram_output)])
@@ -381,7 +396,7 @@ def test_export__absolute_file_path__multiple_diagrams(
         ),
     )
     expected_error = (
-        "usage: c4 [-h] [-V] {render,export} ...\n"
+        "usage: c4 [-h] [-V] {render,export,convert} ...\n"
         f"c4: error: Multiple diagrams found in '{module_path!s}': "
         f"diagram1, diagram2. "
         f"Either ensure the target contains exactly one Diagram, or "
@@ -414,7 +429,7 @@ def test_export__module__multiple_diagrams(
         ),
     )
     expected_error = (
-        "usage: c4 [-h] [-V] {render,export} ...\n"
+        "usage: c4 [-h] [-V] {render,export,convert} ...\n"
         "c4: error: Multiple diagrams found in module 'module': "
         "diagram1, diagram2. "
         "Either ensure the target contains exactly one Diagram, or "
@@ -438,7 +453,7 @@ def test_export__absolute_file_path__file_not_found(
     module_path = make_tmp_py_file("module.py")
     module_path.unlink()
     expected_error = (
-        "usage: c4 [-h] [-V] {render,export} ...\n"
+        "usage: c4 [-h] [-V] {render,export,convert} ...\n"
         f"c4: error: Python file not found: '{module_path!s}'.\n"
     )
 
@@ -672,6 +687,8 @@ def test_export_to_stdout(
         str(module_path),
         "-f",
         "txt",
+        "--timeout",
+        "60",
     ])
 
     assert result.exit_code == 0
@@ -755,6 +772,8 @@ def test_export_provided_renderer_plantuml(
         "txt",
         "-o",
         str(diagram_output),
+        "--timeout",
+        "60",
     ])
 
     assert result.exit_code == 0
@@ -805,6 +824,8 @@ def test_export_plantuml_invalid_format(
         "unknown",
         "-o",
         str(diagram_output),
+        "--timeout",
+        "60",
     ])
 
     assert result.exit_code == 2
@@ -846,6 +867,8 @@ def test_export_plantuml_invalid_plantuml_bin(
         "txt",
         "-o",
         str(diagram_output),
+        "--timeout",
+        "60",
     ])
 
     assert result.exit_code == 2
@@ -886,6 +909,8 @@ def test_export_plantuml_plantuml_jar_does_not_exist(
         "txt",
         "-o",
         str(diagram_output),
+        "--timeout",
+        "60",
     ])
 
     assert result.exit_code == 2
@@ -926,6 +951,8 @@ def test_export_plantuml_plantuml_jar_is_not_a_file(
         "txt",
         "-o",
         str(diagram_output),
+        "--timeout",
+        "60",
     ])
 
     assert result.exit_code == 2
@@ -963,6 +990,8 @@ def test_export_shortcut_renderer_plantuml(
         "txt",
         "-o",
         str(diagram_output),
+        "--timeout",
+        "60",
     ])
 
     assert result.exit_code == 0
@@ -998,6 +1027,8 @@ def test_export_unknown_renderer(
         "unknown",
         "-f",
         "txt",
+        "--timeout",
+        "60",
     ])
 
     assert result.exit_code == 2
@@ -1023,6 +1054,8 @@ def test_export_mutually_exclusive_renderers(
         "--renderer",
         "plantuml",
         "--plantuml",
+        "--timeout",
+        "60",
     ])
 
     assert result.exit_code == 2
@@ -1053,6 +1086,8 @@ def test_export_mutually_exclusive_plantuml_flags(
         "plantuml",
         "--plantuml-jar",
         str(fake_plantuml_jar),
+        "--timeout",
+        "60",
     ])
 
     assert result.exit_code == 2
@@ -1085,6 +1120,8 @@ def test_export_output_file_path_is_directory(
         "txt",
         "-o",
         str(output_dir),
+        "--timeout",
+        "60",
     ])
 
     assert result.exit_code == 2
@@ -1116,6 +1153,8 @@ def test_export_output_file_path_parent_does_not_exist(
         "txt",
         "-o",
         str(diagram_output),
+        "--timeout",
+        "60",
     ])
 
     assert result.exit_code == 2
@@ -1150,6 +1189,8 @@ def test_export__use_new_c4_style(
         "--plantuml-use-new-c4-style",
         "-f",
         "txt",
+        "--timeout",
+        "60",
     ])
 
     assert result.exit_code == 0
