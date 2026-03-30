@@ -332,7 +332,7 @@ class PythonCodegen:
         """
         Render a relationship in fluent DSL form: `a >> Rel(...) >> b`.
         """
-        from_element, to_element = relationship.get_participants()
+        from_element, to_element = relationship.get_participants()  # type: ignore[var-annotated]
 
         self._builder.add(
             f"{from_element.alias} >> {relationship!r} >> {to_element.alias}"
