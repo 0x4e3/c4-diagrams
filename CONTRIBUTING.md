@@ -75,7 +75,7 @@ cd c4-diagrams
 ### 2. Install dependencies
 
 ```bash
-uv sync
+uv sync --all-extras
 ```
 
 ### 3. Install pre-commit hooks

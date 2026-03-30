@@ -13,8 +13,10 @@ from typing import (
     TYPE_CHECKING,
     Any,
     ClassVar,
+    NoReturn,
     TypeVar,
     cast,
+    overload,
 )
 
 from typing_extensions import Self, override
@@ -859,7 +861,13 @@ class Element(BaseDiagramElement, abc.ABC):
 
         super().__init__()
 
-    def __rshift__(self, other: Any) -> Any:
+    @overload
+    def __rshift__(self, other: str) -> Relationship: ...
+
+    @overload
+    def __rshift__(self, other: Element) -> _EdgeDraft: ...
+
+    def __rshift__(self, other: str | Element) -> Relationship | _EdgeDraft:
         """
         Enables:
           - Self >> "label" >> Element2   (pending relationship)
@@ -875,7 +883,13 @@ class Element(BaseDiagramElement, abc.ABC):
 
         return NotImplemented
 
-    def __lshift__(self, other: Any) -> Any:
+    @overload
+    def __lshift__(self, other: str) -> Relationship: ...
+
+    @overload
+    def __lshift__(self, other: Element) -> _EdgeDraft: ...
+
+    def __lshift__(self, other: str | Element) -> Relationship | _EdgeDraft:
         """
         Enables:
           - Element2 << "label" << Self   (pending relationship)
@@ -891,7 +905,7 @@ class Element(BaseDiagramElement, abc.ABC):
 
         return NotImplemented
 
-    def __rrshift__(self, other: Any) -> Any:
+    def __rrshift__(self, other: list[Relationship]) -> list[Relationship]:
         """
         Enables: [Relationship(...), ...] >> Element.
         """
@@ -902,7 +916,7 @@ class Element(BaseDiagramElement, abc.ABC):
 
         return NotImplemented  # pragma: no cover
 
-    def __rlshift__(self, other: Any) -> Any:
+    def __rlshift__(self, other: list[Relationship]) -> list[Relationship]:
         """
         Enables: Element << [Relationship(...), ...].
         """
@@ -934,7 +948,7 @@ class Element(BaseDiagramElement, abc.ABC):
 
     def uses(
         self,
-        other: Element,
+        other: _TElement,
         label: str,
         relationship_type: RelationshipType = RelationshipType.REL,
         **kwargs: Any,
@@ -955,15 +969,15 @@ class Element(BaseDiagramElement, abc.ABC):
             relationship_type
         )
         return relationship_class(
-            from_element=self,
-            to_element=other,
+            from_element=self,  # type: ignore[arg-type]
+            to_element=other,  # type: ignore[arg-type]
             label=label,
             **kwargs,
         )
 
     def used_by(
         self,
-        other: Element,
+        other: _TElement,
         label: str,
         relationship_type: RelationshipType = RelationshipType.REL,
         **kwargs: Any,
@@ -984,8 +998,8 @@ class Element(BaseDiagramElement, abc.ABC):
             relationship_type
         )
         return relationship_class(
-            from_element=other,
-            to_element=self,
+            from_element=other,  # type: ignore[arg-type]
+            to_element=self,  # type: ignore[arg-type]
             label=label,
             **kwargs,
         )
@@ -1030,6 +1044,9 @@ class Element(BaseDiagramElement, abc.ABC):
 
         args = ", ".join(attrs)
         return f"{cls_name}({args})"
+
+
+_TElement = TypeVar("_TElement", bound=Element)
 
 
 class ElementWithTechnology(Element):
@@ -1607,8 +1624,8 @@ class Relationship(BaseDiagramElement):
         tags: list[str] | None = None,
         link: str = "",
         index: str | BaseIndex | None = None,
-        from_element: Element | None = None,
-        to_element: Element | None = None,
+        from_element: _TElement | None = None,
+        to_element: _TElement | None = None,
         relationship_type: RelationshipType | None = None,
     ) -> None:
         """
@@ -1666,46 +1683,70 @@ class Relationship(BaseDiagramElement):
 
         cls.__relationship_by_type[relationship_type] = cls
 
-    def get_participants(self) -> tuple[Element, Element]:
+    def get_participants(self) -> tuple[_TElement, _TElement]:
         if not self.from_element:
             raise ValueError("from_element not provided")
 
         if not self.to_element:
             raise ValueError("to_element not provided")
 
-        return self.from_element, self.to_element
+        return self.from_element, self.to_element  # type: ignore[return-value]
+
+    @overload
+    def __rshift__(self, other: _TElement) -> Relationship: ...
+
+    @overload
+    def __rshift__(self, other: list[_TElement]) -> list[Relationship]: ...
 
     def __rshift__(
-        self, other: Element | list[Element]
+        self, other: _TElement | list[_TElement]
     ) -> Relationship | list[Relationship]:
-        """Implements Self >> Element and Self >> [Element]."""
+        """Implements Self >> _TElement and Self >> [_TElement]."""
         self._ensure_not_completed()
 
-        return self._connect(source=self.from_element, destination=other)
+        return self._connect(source=self.from_element, destination=other)  # type: ignore[arg-type,type-var]
+
+    @overload
+    def __lshift__(self, other: _TElement) -> Relationship: ...
+
+    @overload
+    def __lshift__(self, other: list[_TElement]) -> list[Relationship]: ...
 
     def __lshift__(
-        self, other: Element | list[Element]
+        self, other: _TElement | list[_TElement]
     ) -> Relationship | list[Relationship]:
-        """Implements Self << Element and Self << [Element]."""
+        """Implements Self << _TElement and Self << [_TElement]."""
         self._ensure_not_completed()
 
-        return self._connect(source=other, destination=self.to_element)
+        return self._connect(source=other, destination=self.to_element)  # type: ignore[arg-type,type-var]
+
+    @overload
+    def __rrshift__(self, other: _TElement) -> Relationship: ...
+
+    @overload
+    def __rrshift__(self, other: list[_TElement]) -> list[Relationship]: ...
 
     def __rrshift__(
-        self, other: Element | list[Element]
+        self, other: _TElement | list[_TElement]
     ) -> Relationship | list[Relationship]:
-        """Called for [Element] >> Self or Element >> Self."""
+        """Called for [_TElement] >> Self or _TElement >> Self."""
         self._ensure_not_completed()
 
-        return self._connect(source=other, destination=self.to_element)
+        return self._connect(source=other, destination=self.to_element)  # type: ignore[arg-type,type-var]
+
+    @overload
+    def __rlshift__(self, other: _TElement) -> Relationship: ...
+
+    @overload
+    def __rlshift__(self, other: list[_TElement]) -> list[Relationship]: ...
 
     def __rlshift__(
-        self, other: Element | list[Element]
+        self, other: _TElement | list[_TElement]
     ) -> Relationship | list[Relationship]:
-        """Called for [Element] << Self or Element << Self."""
+        """Called for [_TElement] << Self or _TElement << Self."""
         self._ensure_not_completed()
 
-        return self._connect(source=self.from_element, destination=other)
+        return self._connect(source=self.from_element, destination=other)  # type: ignore[arg-type,type-var]
 
     def __repr__(self) -> str:
         cls_name = self.__class__.__name__
@@ -1732,10 +1773,49 @@ class Relationship(BaseDiagramElement):
         args = ", ".join(attrs)
         return f"{cls_name}({args})"
 
+    @overload
+    def _connect(self, source: None, destination: None) -> NoReturn: ...
+
+    @overload
+    def _connect(self, source: _TElement, destination: None) -> NoReturn: ...
+
+    @overload
+    def _connect(self, source: None, destination: _TElement) -> NoReturn: ...
+
+    @overload
+    def _connect(
+        self, source: _TElement, destination: _TElement
+    ) -> Relationship: ...
+
+    @overload
+    def _connect(
+        self, source: list[_TElement], destination: None
+    ) -> NoReturn: ...
+
+    @overload
+    def _connect(
+        self, source: None, destination: list[_TElement]
+    ) -> NoReturn: ...
+
+    @overload
+    def _connect(
+        self, source: list[_TElement], destination: list[_TElement]
+    ) -> NoReturn: ...
+
+    @overload
+    def _connect(
+        self, source: list[_TElement], destination: _TElement
+    ) -> list[Relationship]: ...
+
+    @overload
+    def _connect(
+        self, source: _TElement, destination: list[_TElement]
+    ) -> list[Relationship]: ...
+
     def _connect(
         self,
-        source: Element | list[Element] | None,
-        destination: Element | list[Element] | None,
+        source: _TElement | list[_TElement] | None,
+        destination: _TElement | list[_TElement] | None,
     ) -> Relationship | list[Relationship]:
         self._ensure_not_completed()
 
@@ -1749,9 +1829,9 @@ class Relationship(BaseDiagramElement):
 
         if isinstance(source, list):
             from_iter = source
-            to_iter: Iterable[Element] = repeat(destination)  # type: ignore[arg-type]
+            to_iter: Iterable[_TElement] = repeat(destination)  # type: ignore[arg-type]
         elif isinstance(destination, list):
-            from_iter: Iterable[Element] = repeat(source)  # type: ignore[no-redef]
+            from_iter: Iterable[_TElement] = repeat(source)  # type: ignore[no-redef]
             to_iter = destination
         else:
             # Both are single elements
@@ -2115,5 +2195,4 @@ class LayLeft(Layout):
 
 _TDiagram = TypeVar("_TDiagram", bound=Diagram)
 _TRelationship = TypeVar("_TRelationship", bound=Relationship)
-_TElement = TypeVar("_TElement", bound=Element)
 _TLayout = TypeVar("_TLayout", bound=Layout)
