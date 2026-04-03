@@ -1,6 +1,6 @@
 [project]
 name = "c4-diagrams"
-version = "0.4.3"
+version = "0.4.4"
 description = "A Python DSL for generating C4 diagrams"
 authors = [{ name = "Alexey Sidorov", email = "ereon.dev@gmail.com" }]
 readme = "README.md"
@@ -95,6 +95,7 @@ fix = true
 exclude = [
     "tests/snapshots/",
     "tests/test_integration/test_cli/snapshots",
+    "docs/assets/examples",
     "docs/scripts/generate_diagram_spec_docs.py",
 ]
 
@@ -171,7 +172,7 @@ omit = [
 
 [tool.commitizen]
 name = "cz_conventional_commits"
-version = "0.4.3"
+version = "0.4.4"
 tag_format = "$version"
 version_scheme = "semver"
 version_files = [
