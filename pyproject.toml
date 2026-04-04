@@ -1,6 +1,6 @@
 [project]
 name = "c4-diagrams"
-version = "0.4.4"
+version = "0.4.5"
 description = "A Python DSL for generating C4 diagrams"
 authors = [{ name = "Alexey Sidorov", email = "ereon.dev@gmail.com" }]
 readme = "README.md"
@@ -47,7 +47,8 @@ dev = [
     "commitizen>=4.11.0",
     "polyfactory>=3.3.0",
     "zensical>=0.0.29",
-    "mkdocstrings[python]>=1.0.0",
+    "mkdocstrings[python]>=1.0.1",
+    "mkdocs-autorefs>=1.4.3",
 ]
 
 [build-system]
@@ -172,7 +173,7 @@ omit = [
 
 [tool.commitizen]
 name = "cz_conventional_commits"
-version = "0.4.4"
+version = "0.4.5"
 tag_format = "$version"
 version_scheme = "semver"
 version_files = [
