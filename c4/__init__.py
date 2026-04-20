@@ -28,6 +28,7 @@ from c4.diagrams.core import (
     BiRelRight,
     BiRelU,
     BiRelUp,
+    Boundary,
     Index,
     LastIndex,
     LayD,
@@ -92,7 +93,7 @@ from c4.enums import (
     DiagramFormat,
 )
 
-__version__ = "0.4.5"
+__version__ = "0.5.0"
 
 __all__ = (
     "EPS",
@@ -111,6 +112,7 @@ __all__ = (
     "BiRelRight",
     "BiRelU",
     "BiRelUp",
+    "Boundary",
     "Component",
     "ComponentDb",
     "ComponentDbExt",
